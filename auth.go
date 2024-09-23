@@ -7,6 +7,13 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+type (
+	CtxKey   struct{}
+	CtxValue struct {
+		Username string
+	}
+)
+
 type auth struct {
 	username string
 	password string
@@ -27,7 +34,7 @@ func (a *auth) middleware(actualHandler http.Handler) http.Handler {
 		}
 
 		// user is authenticated: store this info in the context
-		ctx := context.WithValue(r.Context(), ctxKey{}, ctxValue{username})
+		ctx := context.WithValue(r.Context(), CtxKey{}, CtxValue{username})
 
 		logrus.Infof("authenticated as %s", username)
 

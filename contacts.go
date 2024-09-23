@@ -14,13 +14,6 @@ import (
 	"github.com/emersion/go-webdav/carddav"
 )
 
-type (
-	ctxKey   struct{}
-	ctxValue struct {
-		username string
-	}
-)
-
 type contactBackend struct {
 	prefix   string
 	contacts []User
@@ -132,8 +125,8 @@ func NewCardDAVHandler(prefix string, contacts []User) http.Handler {
 }
 
 func currentUsername(ctx context.Context) (string, error) {
-	if v, ok := ctx.Value(ctxKey{}).(ctxValue); ok {
-		return v.username, nil
+	if v, ok := ctx.Value(CtxKey{}).(CtxValue); ok {
+		return v.Username, nil
 	}
 	return "", errors.New("not authenticated")
 }

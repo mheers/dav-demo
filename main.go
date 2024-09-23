@@ -28,9 +28,21 @@ func main() {
 		},
 	}
 
+	events := []CalendarEvent{
+		{
+			ID:          "123",
+			Summary:     "Meeting",
+			Location:    "Room 101",
+			StartAt:     time.Now(),
+			EndAt:       time.Now().Add(time.Hour),
+			CreatedAt:   time.Now(),
+			Description: "Discuss the new project",
+		},
+	}
+
 	r := http.NewServeMux()
 	r.Handle("/carddav/", a.middleware(NewCardDAVHandler("carddav", addressBookEntries)))
-	r.Handle("/caldav/", a.middleware(NewCalDavHandler("caldav", a.username)))
+	r.Handle("/caldav/", a.middleware(NewCalDavHandler("caldav", events)))
 	r.Handle("/files/", a.middleware(NewWebDavHandler("files", "./files")))
 
 	s := &http.Server{

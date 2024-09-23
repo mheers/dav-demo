@@ -36,7 +36,7 @@ func (b *calendarBackend) GetCalendar(ctx context.Context, path string) (*caldav
 			return &cal, nil
 		}
 	}
-	return nil, fmt.Errorf("Calendar for path: %s not found", path)
+	return nil, fmt.Errorf("calendar for path: %s not found", path)
 }
 
 func (b *calendarBackend) CalendarHomeSetPath(ctx context.Context) (string, error) {
@@ -62,7 +62,7 @@ func (b *calendarBackend) GetCalendarObject(ctx context.Context, path string, re
 			}
 		}
 	}
-	return nil, fmt.Errorf("Couldn't find calendar object at: %s", path)
+	return nil, fmt.Errorf("couldn't find calendar object at: %s", path)
 }
 
 func (b *calendarBackend) PutCalendarObject(ctx context.Context, path string, calendar *ical.Calendar, opts *caldav.PutCalendarObjectOptions) (*caldav.CalendarObject, error) {
@@ -77,9 +77,9 @@ func (b *calendarBackend) QueryCalendarObjects(ctx context.Context, path string,
 	return nil, nil
 }
 
-func NewCalDavHandler(prefix, username string) http.Handler {
+func NewCalDavHandler(path string, events []CalendarEvent) http.Handler {
 	sessionsCal := caldav.Calendar{
-		Path:                  fmt.Sprintf("/%s/%s/calendars/sessions", prefix, username),
+		Path:                  path,
 		SupportedComponentSet: []string{ical.CompEvent},
 	}
 
@@ -90,26 +90,19 @@ func NewCalDavHandler(prefix, username string) http.Handler {
 	cal.Props.SetText(ical.PropVersion, "2.0")
 	cal.Props.SetText(ical.PropProductID, "-//xyz Corp//NONSGML PDA Calendar Version 1.0//EN")
 
-	eventSummary := fmt.Sprintf("Jetzt: %s", username)
-	event := ical.NewEvent()
-	event.Name = ical.CompEvent
-	event.Props.SetText(ical.PropUID, "46bbf47a-1861-41a3-ae06-8d8268c6d41e")
-	event.Props.SetDateTime(ical.PropDateTimeStamp, time.Now())
-	event.Props.SetText(ical.PropSummary, eventSummary)
-	event.Props.SetDateTime(ical.PropDateTimeStart, time.Now())
-	event.Props.SetDateTime(ical.PropDateTimeEnd, time.Now().Add(1*time.Hour))
+	cal.Children = []*ical.Component{}
 
-	cal.Children = []*ical.Component{
-		event.Component,
+	for _, event := range events {
+		cal.Children = append(cal.Children, event.toICalEvent().Component)
 	}
 
 	object := caldav.CalendarObject{
-		Path: fmt.Sprintf("/%s/%s/calendars/sessions/test.ics", prefix, username),
+		Path: path,
 		Data: cal,
 	}
 
 	return &caldav.Handler{
-		Prefix: fmt.Sprintf("/%s/", prefix),
+		Prefix: path,
 		Backend: &calendarBackend{
 			calendars: calendars,
 			objectMap: map[string][]caldav.CalendarObject{
@@ -117,4 +110,26 @@ func NewCalDavHandler(prefix, username string) http.Handler {
 			},
 		},
 	}
+}
+
+type CalendarEvent struct {
+	ID          string
+	CreatedAt   time.Time
+	StartAt     time.Time
+	EndAt       time.Time
+	Summary     string
+	Location    string
+	Description string
+}
+
+func (e *CalendarEvent) toICalEvent() *ical.Event {
+	event := ical.NewEvent()
+	event.Props.SetText(ical.PropUID, e.ID)
+	event.Props.SetDateTime(ical.PropDateTimeStamp, e.CreatedAt)
+	event.Props.SetDateTime(ical.PropDateTimeStart, e.StartAt)
+	event.Props.SetDateTime(ical.PropDateTimeEnd, e.EndAt)
+	event.Props.SetText(ical.PropSummary, e.Summary)
+	event.Props.SetText(ical.PropLocation, e.Location)
+	event.Props.SetText(ical.PropDescription, e.Description)
+	return event
 }

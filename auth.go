@@ -36,7 +36,7 @@ func (a *auth) middleware(actualHandler http.Handler) http.Handler {
 		// user is authenticated: store this info in the context
 		ctx := context.WithValue(r.Context(), CtxKey{}, CtxValue{username})
 
-		logrus.Infof("authenticated as %s", username)
+		// logrus.Infof("authenticated as %s", username)
 
 		// delegate the work to the CardDAV handle
 		actualHandler.ServeHTTP(w, r.WithContext(ctx))

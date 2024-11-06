@@ -4,14 +4,32 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/gorilla/mux"
 	"github.com/sirupsen/logrus"
 )
+
+// TracingMiddleware logs incoming requests
+func TracingMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// start := time.Now()
+
+		// Log the incoming request details
+		logrus.Infof("Request Method: %s, URL: %s, RemoteAddr: %s, User-Agent: %s",
+			r.Method, r.URL.Path, r.RemoteAddr, r.Header.Get("User-Agent"))
+
+		// Call the next handler
+		next.ServeHTTP(w, r)
+
+		// Log the duration it took to handle the request
+		// logrus.Infof("Completed in %s", time.Since(start))
+	})
+}
 
 func main() {
 
 	a := auth{
 		username: "marcel",
-		password: "password",
+		password: "admin",
 	}
 
 	addressBookEntries := []User{
@@ -40,10 +58,12 @@ func main() {
 		},
 	}
 
-	r := http.NewServeMux()
+	r := mux.NewRouter()
+	r.Use(TracingMiddleware)
+
 	r.Handle("/carddav/", a.middleware(NewCardDAVHandler("carddav", addressBookEntries)))
 	r.Handle("/caldav/", a.middleware(NewCalDavHandler("caldav", events)))
-	r.Handle("/files/", a.middleware(NewWebDavHandler("files", "./files")))
+	r.PathPrefix("/files").Handler(a.middleware(NewWebDavHandler("files", "./files")))
 
 	s := &http.Server{
 		Addr:           ":8086",
